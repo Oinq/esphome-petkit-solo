@@ -22,10 +22,34 @@ bluetooth_proxy:
 script:
   - id: !extend before_feed
     then:
-      - esp32_ble_tracker.stop_scan:
+      - if:
+          condition:
+            ble.enabled:
+          then:
+            - esp32_ble_tracker.stop_scan:
   - id: !extend after_feed
     then:
-      - esp32_ble_tracker.start_scan:
+      - if:
+          condition:
+            ble.enabled:
+          then:
+            - esp32_ble_tracker.start_scan:
+
+# On/off switch in Home Assistant (device configuration). Off turns Bluetooth off
+# completely: no scanning, no proxy connections, no Improv BLE. Remembered across
+# reboots; on by default.
+switch:
+  - platform: template
+    id: bluetooth_proxy_enabled
+    name: Bluetooth proxy
+    icon: mdi:bluetooth
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    turn_on_action:
+      - ble.enable:
+    turn_off_action:
+      - ble.disable:
 
 # Diagnostics: free memory, to check headroom with the proxy running.
 debug:

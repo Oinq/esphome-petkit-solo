@@ -118,6 +118,9 @@ packages:
 - Active proxy with 3 connection slots; passive scanning (interval 320 ms, window 30 ms).
 - **BLE scanning is paused while the motor runs**, through the `before_feed` / `after_feed`
   hooks of the main package, so the rotation sensor is not delayed by the radio.
+- *Bluetooth proxy* switch in the device configuration: off turns Bluetooth off completely
+  (no scanning, no proxy connections, no Improv BLE); remembered across reboots, on by default.
+  Useful for troubleshooting or to make Home Assistant use another proxy.
 - Adds *Free heap* and *Largest free heap block* diagnostics. Measured on a Solo with
   ESPHome 2026.10.2: about 114 KB free, 90 KB largest block; image 76.5 % of the app partition.
 

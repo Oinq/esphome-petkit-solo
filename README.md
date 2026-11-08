@@ -51,6 +51,9 @@ Other board revisions may differ. Check yours before flashing.
 The stock firmware is not ESPHome, so the **first flash needs a USB–UART adapter at
 3.3 V**. After that, updates are over the air.
 
+A **step-by-step guide with photos** is in [docs/flashing-guide.md](docs/flashing-guide.md).
+The short version:
+
 1. Open the feeder and disconnect it from power. Remove the batteries if present.
 2. Connect the adapter: adapter TX → board `WIFI_RX0`, adapter RX → board `WIFI_TX0`,
    GND → GND and 3.3 V → `3V3`. Never use 5 V on these pins.

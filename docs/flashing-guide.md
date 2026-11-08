@@ -32,7 +32,8 @@ right, `DTR RX TX VCC CTS GND`.
 
 ## 2. Open the feeder
 
-Remove the food hopper and open the base. Inside you find the main board standing
+Remove the food hopper. The base screws are hidden under the rubber feet: peel the feet
+off, remove the screws and open the base. Inside you find the main board standing
 upright, the dispensing motor with its rotation sensor, and the DC power jack.
 
 ![Feeder base opened](images/open-base-overview.jpg)
@@ -44,14 +45,11 @@ They are glued, and you will need to put them back the same way.
 
 ![Board mounted, cable routing](images/board-mounted-cable-routing.jpg)
 
-![Board front, in the case](images/board-front-in-case.jpg)
-
 The front of the board has the ESP32 module (ESP32-WROOM-32D, chip ESP32-D0WD), two
-buttons, the buzzer and the connectors.
+buttons, the buzzer and the connectors. The button farther from the ESP32 module is
+GPIO0, the Wi-Fi button; it can also be pressed from outside the feeder.
 
 ![Board front](images/board-front.jpg)
-
-![Board front, second unit](images/second-unit-board-front.jpg)
 
 ## 3. Find the pads
 
@@ -63,11 +61,9 @@ All the pads you need are on the back of the board and are labelled:
 | `WIFI_TX0` | ESP32 transmit (connect to adapter **RX**) |
 | `GND` (next to `WIFI_TX0`) | Ground |
 | `3V3` (next to `DC/BAT_SW`, at the other end) | 3.3 V supply from the adapter |
-| `IO0` | GPIO0; tie to GND at power-up to enter the bootloader (alternative to the Wi-Fi button) |
+| `IO0` | GPIO0, the same signal as the Wi-Fi button; not needed if you use the button |
 
 ![Pads to use, marked](images/pads-marked.jpg)
-
-![Back of the board, labels readable](images/pads-clean.jpg)
 
 ![Back of the board with the version label](images/board-back-label.jpg)
 
@@ -76,7 +72,7 @@ All the pads you need are on the back of the board and are labelled:
 ## 4. Solder the wires
 
 Solder one wire to each of `GND`, `WIFI_TX0`, `WIFI_RX0` and `3V3`. In the photos:
-turquoise is `GND`, yellow is `WIFI_TX0`, orange is `WIFI_RX0` and red is `3V3`.
+green is `GND`, yellow is `WIFI_TX0`, orange is `WIFI_RX0` and red is `3V3`.
 
 ![Wires soldered](images/wires-soldered-overview.jpg)
 
@@ -93,16 +89,15 @@ Connect them to the adapter, **crossing TX and RX**:
 
 ![Board connected to the adapter](images/board-ftdi-connected.jpg)
 
-**Power.** With the feeder's own power supply disconnected, the adapter powers the ESP32
-through `3V3`. This worked on both units. If the adapter cannot supply enough current
-(esptool cannot connect, or the computer loses the adapter), use the feeder's power
-supply instead and **disconnect the `3V3` wire**: only GND, TX and RX. Never connect both
-supplies at the same time.
+**Power.** Keep the feeder's own power supply disconnected: the adapter powers the ESP32
+through `3V3`. This worked on both units. Never connect the feeder's power supply while
+the `3V3` wire is connected to the adapter.
 
 ## 5. Enter the bootloader
 
 1. Disconnect the adapter from USB.
-2. Hold the feeder's Wi-Fi button (GPIO0), or tie `IO0` to `GND`.
+2. Hold the Wi-Fi button (GPIO0): the small button farther from the ESP32 module, also
+   reachable from outside the feeder.
 3. Connect the adapter to USB while holding it.
 4. Keep holding until esptool says it is connected, then release.
 
@@ -182,5 +177,4 @@ esptool --port /dev/ttyUSB0 --before no-reset --after no-reset \
 | The computer does not see the adapter | Charge-only USB cable; loose mini-USB plug; adapter LED off. If you use a virtual machine, pass the adapter (USB `0403:6001`) through to it. |
 | `No serial data received` | ESP32 not in the bootloader: repeat section 5. TX and RX not crossed: swap them. Jumper on 5 V instead of 3.3 V. |
 | Works once, next command fails | The ESP32 left the bootloader. Repeat section 5 before each esptool command. |
-| Adapter disconnects when the board is attached | Not enough current from the adapter: use the feeder's power supply with only GND, TX and RX. |
 | No `petkit-solo-…` network after flashing | Wait 30 s; check that the button was not held at power-up (that enters the bootloader again). |

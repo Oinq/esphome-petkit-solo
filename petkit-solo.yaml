@@ -101,6 +101,8 @@ script:
       - text_sensor.template.publish:
           id: last_result
           state: running
+      - script.execute: before_feed
+      - script.wait: before_feed
       - switch.turn_on: motor_enable
       - switch.turn_on: motor_forward
       - wait_until:
@@ -111,6 +113,7 @@ script:
           timeout: ${hard_timeout}
       - switch.turn_off: motor_forward
       - switch.turn_off: motor_enable
+      - script.execute: after_feed
       - lambda: |-
           std::string r;
           if (id(portions_done) >= id(target_portions))
@@ -130,6 +133,19 @@ script:
             result: !lambda "return id(last_result).state;"
             portions: !lambda "return to_string(id(portions_done));"
             requested: !lambda "return to_string(id(target_portions));"
+
+  # Hooks for optional packages (e.g. packages/bluetooth-proxy.yaml pauses BLE scanning
+  # while the motor runs). They do nothing by default.
+  - id: before_feed
+    then:
+      - logger.log:
+          level: VERBOSE
+          format: "before_feed"
+  - id: after_feed
+    then:
+      - logger.log:
+          level: VERBOSE
+          format: "after_feed"
 
   - id: scheduled_feed
     mode: queued

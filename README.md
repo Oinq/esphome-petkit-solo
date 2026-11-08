@@ -103,6 +103,24 @@ are kept.
 Without network time (no Internet, no Home Assistant) the schedule does not run until
 the clock is set. Manual feeding still works.
 
+## Optional: Bluetooth proxy
+
+The feeder can also act as an [ESPHome Bluetooth proxy](https://esphome.io/components/bluetooth_proxy/)
+for Home Assistant, for example to reach a PETKIT water fountain over BLE. Add the package
+after the main one:
+
+```yaml
+packages:
+  petkit_solo: github://Oinq/esphome-petkit-solo/petkit-solo.yaml@v0.2.0
+  bluetooth_proxy: github://Oinq/esphome-petkit-solo/packages/bluetooth-proxy.yaml@v0.2.0
+```
+
+- Active proxy with 3 connection slots; passive scanning (interval 320 ms, window 30 ms).
+- **BLE scanning is paused while the motor runs**, through the `before_feed` / `after_feed`
+  hooks of the main package, so the rotation sensor is not delayed by the radio.
+- Adds *Free heap* and *Largest free heap block* diagnostics. Measured on a Solo with
+  ESPHome 2026.10.2: about 114 KB free, 90 KB largest block; image 76.5 % of the app partition.
+
 ## Safety
 
 This firmware drives a motor that feeds an animal. A fault can leave an animal without

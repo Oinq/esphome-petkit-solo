@@ -1,0 +1,41 @@
+# Optional: turn the feeder into an ESPHome Bluetooth proxy for Home Assistant
+# (for example to reach a PETKIT water fountain over BLE).
+#
+# BLE scanning is paused while the motor runs, so the rotation sensor is never
+# delayed by the radio. Active connections made by Home Assistant are not
+# interrupted; they are short (a few seconds per poll).
+#
+# Usage, after the main package:
+#   packages:
+#     petkit_solo: github://Oinq/esphome-petkit-solo/petkit-solo.yaml@vX.Y.Z
+#     bluetooth_proxy: github://Oinq/esphome-petkit-solo/packages/bluetooth-proxy.yaml@vX.Y.Z
+
+esp32_ble_tracker:
+  scan_parameters:
+    active: false
+    interval: 320ms
+    window: 30ms
+
+bluetooth_proxy:
+  active: true
+
+script:
+  - id: !extend before_feed
+    then:
+      - esp32_ble_tracker.stop_scan:
+  - id: !extend after_feed
+    then:
+      - esp32_ble_tracker.start_scan:
+
+# Diagnostics: free memory, to check headroom with the proxy running.
+debug:
+  update_interval: 60s
+
+sensor:
+  - platform: debug
+    free:
+      name: Free heap
+      entity_category: diagnostic
+    block:
+      name: Largest free heap block
+      entity_category: diagnostic

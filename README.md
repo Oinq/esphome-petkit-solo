@@ -118,10 +118,11 @@ Use at your own risk. See the [licence](LICENSE).
 | Item | Status |
 |---|---|
 | Configuration valid on ESPHome 2026.10.2 | ✅ |
-| Compiles on ESPHome 2026.10.2 (arduino, ~917 KB, 51 % of the app partition) | ✅ |
-| Runs on a Solo (board D4.2) | pending |
-| Motor protection in a real failure | pending |
-| Second unit | pending |
+| Compiles on ESPHome 2026.10.2 (arduino, OTA image ~1.3 MB, 71 % of the app partition) | ✅ |
+| Runs on two Solo units (board D4.2): one updated over the air from an older ESPHome, one flashed over UART from the stock firmware (ESP32-D0WD, 8 MB flash) | ✅ |
+| Wi-Fi onboarding, Home Assistant adoption, feed now and scheduled meals | ✅ |
+| Feed stopped by the rotation sensor; empty hopper reported as `no_food_detected` | ✅ |
+| Motor protection in a real jam (per-pulse timeout) | pending |
 
 ## Credits
 

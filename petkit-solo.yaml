@@ -1,0 +1,430 @@
+# ESPHome firmware for the PETKIT Fresh Element Solo pet feeder (ESP32 board D4.2).
+# Include this file as a package from your own device configuration; see README.md.
+#
+# Safety: the motor is stopped by the rotation sensor, by a per-pulse timeout and by
+# an absolute timeout. Test with supervision before relying on it to feed an animal.
+
+substitutions:
+  name: petkit-solo
+  friendly_name: PETKIT Solo
+  timezone: Europe/London
+  ntp_server_1: 0.pool.ntp.org
+  ntp_server_2: 1.pool.ntp.org
+  ntp_server_3: 2.pool.ntp.org
+  max_portions: "6"           # absolute limit per request
+  pulse_timeout_ms: "6000"    # max time between rotation sensor pulses
+  hard_timeout: 60s           # absolute limit per feed, whatever happens
+  default_manual_portions: "1"
+  meal1_time: "07:00:00"
+  meal2_time: "12:00:00"
+  meal3_time: "17:00:00"
+  meal4_time: "21:00:00"
+  default_meal_portions: "2"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  comment: PETKIT Fresh Element Solo (local ESPHome firmware)
+  project:
+    name: oinq.petkit-solo
+    version: 0.1.0
+  on_boot:
+    - priority: 800
+      then:
+        - switch.turn_off: motor_forward
+        - switch.turn_off: motor_reverse
+        - switch.turn_off: motor_enable
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  level: DEBUG
+
+api:
+  actions:
+    - action: feed
+      variables:
+        portions: int
+      then:
+        - script.execute:
+            id: feed_script
+            requested: !lambda "return portions;"
+
+time:
+  - platform: sntp
+    id: local_time
+    timezone: ${timezone}
+    servers:
+      - ${ntp_server_1}
+      - ${ntp_server_2}
+      - ${ntp_server_3}
+    on_time:
+      - seconds: 0
+        minutes: 0
+        hours: 0
+        then:
+          - lambda: |-
+              id(portions_today_count) = 0;
+              id(portions_today).publish_state(0);
+  - platform: homeassistant
+    id: ha_time
+    timezone: ${timezone}
+
+globals:
+  - id: target_portions
+    type: int
+  - id: portions_done
+    type: int
+  - id: food_pulses
+    type: int
+  - id: last_pulse_ms
+    type: uint32_t
+  - id: portions_today_count
+    type: int
+
+script:
+  - id: feed_script
+    mode: single              # one feed at a time; requests during a feed are ignored
+    parameters:
+      requested: int
+    then:
+      - lambda: |-
+          id(target_portions) = std::max(1, std::min(requested, ${max_portions}));
+          if (requested != id(target_portions))
+            ESP_LOGW("feed", "Requested %d portions, limited to %d", requested, id(target_portions));
+          id(portions_done) = 0;
+          id(food_pulses) = 0;
+          id(last_pulse_ms) = millis();
+      - text_sensor.template.publish:
+          id: last_result
+          state: running
+      - switch.turn_on: motor_enable
+      - switch.turn_on: motor_forward
+      - wait_until:
+          condition:
+            lambda: |-
+              return id(portions_done) >= id(target_portions)
+                  || millis() - id(last_pulse_ms) > ${pulse_timeout_ms};
+          timeout: ${hard_timeout}
+      - switch.turn_off: motor_forward
+      - switch.turn_off: motor_enable
+      - lambda: |-
+          std::string r;
+          if (id(portions_done) >= id(target_portions))
+            r = id(food_pulses) > 0 ? "ok" : "no_food_detected";
+          else
+            r = "motor_timeout";
+          if (r != "ok")
+            ESP_LOGE("feed", "Feed ended with %s (%d/%d portions)", r.c_str(), id(portions_done), id(target_portions));
+          id(portions_today_count) += id(portions_done);
+          id(last_portions).publish_state(id(portions_done));
+          id(portions_today).publish_state(id(portions_today_count));
+          id(last_result).publish_state(r);
+      - homeassistant.event:
+          event: esphome.petkit_solo_feed
+          data:
+            device: ${name}
+            result: !lambda "return id(last_result).state;"
+            portions: !lambda "return to_string(id(portions_done));"
+            requested: !lambda "return to_string(id(target_portions));"
+
+  - id: scheduled_feed
+    mode: queued
+    parameters:
+      portions: int
+    then:
+      - script.execute:
+          id: feed_script
+          requested: !lambda "return portions;"
+      - script.wait: feed_script
+
+output:
+  - id: led_output
+    platform: gpio
+    pin: GPIO5
+
+light:
+  - platform: binary
+    id: status_led
+    name: Status LED
+    output: led_output
+    internal: true
+    effects:
+      - strobe:
+          name: fast_blink
+          colors:
+            - state: true
+              duration: 125ms
+            - state: false
+              duration: 125ms
+
+interval:
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            wifi.connected:
+          then:
+            - light.turn_on:
+                id: status_led
+                effect: None
+          else:
+            - light.turn_on:
+                id: status_led
+                effect: fast_blink
+
+binary_sensor:
+  - platform: gpio
+    id: manual_feed_button
+    pin:
+      number: GPIO34
+      inverted: true
+    internal: true
+    filters:
+      - delayed_on: 50ms
+    on_press:
+      - script.execute:
+          id: feed_script
+          requested: !lambda "return (int) id(manual_portions).state;"
+
+  - platform: gpio
+    id: rotation_sensor
+    pin:
+      number: GPIO27
+      inverted: true
+    internal: true
+    on_press:
+      - lambda: |-
+          id(portions_done) += 1;
+          id(last_pulse_ms) = millis();
+          if (id(portions_done) >= id(target_portions)) {
+            id(motor_forward).turn_off();
+            id(motor_enable).turn_off();
+          }
+
+  - platform: gpio
+    id: food_sensor
+    pin:
+      number: GPIO14
+    internal: true
+    on_press:
+      - lambda: "id(food_pulses) += 1;"
+
+  - platform: template
+    name: Food possibly empty
+    device_class: problem
+    lambda: |-
+      return id(last_result).state == "no_food_detected";
+
+switch:
+  - platform: gpio
+    id: enable_sensors
+    pin: GPIO33
+    restore_mode: ALWAYS_ON
+    internal: true
+
+  - platform: gpio
+    id: motor_enable
+    pin: GPIO19
+    restore_mode: ALWAYS_OFF
+    internal: true
+
+  - platform: gpio
+    id: motor_forward
+    pin: GPIO18
+    restore_mode: ALWAYS_OFF
+    interlock: [motor_forward, motor_reverse]
+    interlock_wait_time: 200ms
+    internal: true
+
+  - platform: gpio
+    id: motor_reverse
+    pin: GPIO17
+    restore_mode: ALWAYS_OFF
+    interlock: [motor_forward, motor_reverse]
+    interlock_wait_time: 200ms
+    internal: true            # not used yet; present for the interlock
+
+  - platform: template
+    id: meal1_enabled
+    name: Meal 1 enabled
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    entity_category: config
+  - platform: template
+    id: meal2_enabled
+    name: Meal 2 enabled
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    entity_category: config
+  - platform: template
+    id: meal3_enabled
+    name: Meal 3 enabled
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    entity_category: config
+  - platform: template
+    id: meal4_enabled
+    name: Meal 4 enabled
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    entity_category: config
+
+number:
+  - platform: template
+    id: manual_portions
+    name: Manual portions
+    min_value: 1
+    max_value: ${max_portions}
+    step: 1
+    initial_value: ${default_manual_portions}
+    optimistic: true
+    restore_value: true
+    entity_category: config
+  - platform: template
+    id: meal1_portions
+    name: Meal 1 portions
+    min_value: 1
+    max_value: ${max_portions}
+    step: 1
+    initial_value: ${default_meal_portions}
+    optimistic: true
+    restore_value: true
+    entity_category: config
+  - platform: template
+    id: meal2_portions
+    name: Meal 2 portions
+    min_value: 1
+    max_value: ${max_portions}
+    step: 1
+    initial_value: ${default_meal_portions}
+    optimistic: true
+    restore_value: true
+    entity_category: config
+  - platform: template
+    id: meal3_portions
+    name: Meal 3 portions
+    min_value: 1
+    max_value: ${max_portions}
+    step: 1
+    initial_value: ${default_meal_portions}
+    optimistic: true
+    restore_value: true
+    entity_category: config
+  - platform: template
+    id: meal4_portions
+    name: Meal 4 portions
+    min_value: 1
+    max_value: ${max_portions}
+    step: 1
+    initial_value: ${default_meal_portions}
+    optimistic: true
+    restore_value: true
+    entity_category: config
+
+datetime:
+  - platform: template
+    id: meal1_time_entity
+    name: Meal 1 time
+    type: time
+    optimistic: true
+    restore_value: true
+    initial_value: ${meal1_time}
+    time_id: local_time
+    entity_category: config
+    on_time:
+      - if:
+          condition:
+            switch.is_on: meal1_enabled
+          then:
+            - script.execute:
+                id: scheduled_feed
+                portions: !lambda "return (int) id(meal1_portions).state;"
+  - platform: template
+    id: meal2_time_entity
+    name: Meal 2 time
+    type: time
+    optimistic: true
+    restore_value: true
+    initial_value: ${meal2_time}
+    time_id: local_time
+    entity_category: config
+    on_time:
+      - if:
+          condition:
+            switch.is_on: meal2_enabled
+          then:
+            - script.execute:
+                id: scheduled_feed
+                portions: !lambda "return (int) id(meal2_portions).state;"
+  - platform: template
+    id: meal3_time_entity
+    name: Meal 3 time
+    type: time
+    optimistic: true
+    restore_value: true
+    initial_value: ${meal3_time}
+    time_id: local_time
+    entity_category: config
+    on_time:
+      - if:
+          condition:
+            switch.is_on: meal3_enabled
+          then:
+            - script.execute:
+                id: scheduled_feed
+                portions: !lambda "return (int) id(meal3_portions).state;"
+  - platform: template
+    id: meal4_time_entity
+    name: Meal 4 time
+    type: time
+    optimistic: true
+    restore_value: true
+    initial_value: ${meal4_time}
+    time_id: local_time
+    entity_category: config
+    on_time:
+      - if:
+          condition:
+            switch.is_on: meal4_enabled
+          then:
+            - script.execute:
+                id: scheduled_feed
+                portions: !lambda "return (int) id(meal4_portions).state;"
+
+button:
+  - platform: template
+    name: Feed now
+    on_press:
+      - script.execute:
+          id: feed_script
+          requested: !lambda "return (int) id(manual_portions).state;"
+  - platform: restart
+    name: Restart
+
+text_sensor:
+  - platform: template
+    id: last_result
+    name: Last feed result
+  - platform: version
+    name: ESPHome version
+
+sensor:
+  - platform: template
+    id: last_portions
+    name: Last feed portions
+    accuracy_decimals: 0
+    state_class: measurement
+  - platform: template
+    id: portions_today
+    name: Portions today
+    accuracy_decimals: 0
+    state_class: total
+  - platform: wifi_signal
+    name: Wi-Fi signal
+    update_interval: 60s
+  - platform: uptime
+    name: Uptime

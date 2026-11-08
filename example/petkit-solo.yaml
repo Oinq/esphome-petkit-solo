@@ -1,0 +1,37 @@
+# Factory configuration: the image published in releases is built from this file.
+# It has no credentials. On first boot the feeder opens a Wi-Fi access point
+# (captive portal) and also accepts Wi-Fi setup over USB (Improv serial) and
+# Bluetooth (Improv BLE). Home Assistant provisions the API encryption key when
+# the device is adopted.
+
+substitutions:
+  name: petkit-solo
+  friendly_name: PETKIT Solo
+
+packages:
+  petkit_solo: !include ../petkit-solo.yaml
+  # In your own configuration, use the remote package instead:
+  # petkit_solo: github://Oinq/esphome-petkit-solo/petkit-solo.yaml@v0.1.0
+
+esphome:
+  name_add_mac_suffix: true
+
+dashboard_import:
+  package_import_url: github://Oinq/esphome-petkit-solo/example/petkit-solo.yaml@main
+  import_full_config: false
+
+api:
+  encryption: {}
+
+ota:
+  - platform: esphome
+
+wifi:
+  ap: {}
+
+captive_portal:
+
+improv_serial:
+
+improv_ble:
+  authorizer: none

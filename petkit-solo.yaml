@@ -7,7 +7,7 @@
 substitutions:
   name: petkit-solo
   friendly_name: PETKIT Solo
-  timezone: Europe/London
+  timezone: UTC                 # only used until Home Assistant sends its time zone; see README
   ntp_server_1: 0.pool.ntp.org
   ntp_server_2: 1.pool.ntp.org
   ntp_server_3: 2.pool.ntp.org
@@ -71,7 +71,8 @@ time:
               id(portions_today).publish_state(0);
   - platform: homeassistant
     id: ha_time
-    timezone: ${timezone}
+    # No timezone here: Home Assistant (2026.3 or newer) sends its own on every time sync,
+    # so the schedule follows the HA time zone and its daylight saving changes.
 
 globals:
   - id: target_portions

@@ -87,7 +87,7 @@ Override any of these in `substitutions:`:
 | Substitution | Default | Meaning |
 |---|---|---|
 | `name`, `friendly_name` | `petkit-solo`, `PETKIT Solo` | Device names |
-| `timezone` | `Europe/London` | Time zone for the schedule |
+| `timezone` | `UTC` | Time zone used only until Home Assistant connects; afterwards the HA time zone applies. Set it for setups without Home Assistant |
 | `ntp_server_1..3` | `0..2.pool.ntp.org` | NTP servers; use a local one for an offline setup |
 | `meal1_time` … `meal4_time` | 07:00, 12:00, 17:00, 21:00 | Initial meal times |
 | `default_meal_portions` | `2` | Initial portions per meal |

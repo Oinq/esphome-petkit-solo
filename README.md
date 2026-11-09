@@ -10,7 +10,7 @@ Local, cloud-free firmware for the **PETKIT Fresh Element Solo** pet feeder, bui
 
 - Feeding by portions, stopped by the rotation sensor.
 - **Motor protection:** at most one feed at a time, 1–6 portions per request
-  (configurable), a stop when the rotation sensor goes silent for 6 s, a 60 s absolute
+  (configurable), a stop when the rotation sensor goes silent for 10 s, a 60 s absolute
   limit, a forward/reverse interlock and motor off at boot.
 - **Four scheduled meals stored on the feeder.** They keep running when Home Assistant
   is down. Time, portions and on/off are editable from Home Assistant and survive reboots.
@@ -93,7 +93,7 @@ Override any of these in `substitutions:`:
 | `default_meal_portions` | `2` | Initial portions per meal |
 | `default_manual_portions` | `1` | Initial portions for the button / *Feed now* |
 | `max_portions` | `6` | Absolute limit per request |
-| `pulse_timeout_ms` | `6000` | Stop if no rotation pulse for this long |
+| `pulse_timeout_ms` | `10000` | Stop if no rotation pulse for this long (one portion takes ~4.4 s empty, ~5.9 s with food) |
 | `hard_timeout` | `60s` | Absolute limit for one feed |
 
 Meals are **disabled** on a new device: enable them in Home Assistant after setting

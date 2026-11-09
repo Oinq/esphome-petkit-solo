@@ -12,7 +12,7 @@ substitutions:
   ntp_server_2: 1.pool.ntp.org
   ntp_server_3: 2.pool.ntp.org
   max_portions: "6"           # absolute limit per request
-  pulse_timeout_ms: "6000"    # max time between rotation sensor pulses
+  pulse_timeout_ms: "10000"   # max time between rotation sensor pulses (measured: ~4.4 s empty, ~5.9 s with food)
   hard_timeout: 60s           # absolute limit per feed, whatever happens
   default_manual_portions: "1"
   meal1_time: "07:00:00"

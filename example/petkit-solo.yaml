@@ -11,7 +11,7 @@ substitutions:
 packages:
   petkit_solo: !include ../petkit-solo.yaml
   # In your own configuration, use the remote package instead:
-  # petkit_solo: github://Oinq/esphome-petkit-solo/petkit-solo.yaml@v0.1.0
+  # petkit_solo: github://Oinq/esphome-petkit-solo/petkit-solo.yaml@v0.2.0
 
 esphome:
   name_add_mac_suffix: true

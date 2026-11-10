@@ -3,7 +3,8 @@
 Local, cloud-free firmware for the **PETKIT Fresh Element Solo** pet feeder, built on
 [ESPHome](https://esphome.io). It reuses the feeder's own ESP32. No extra board is needed.
 
-> **Status: pre-release (0.1.0), not yet validated on a feeding animal.**
+> **Status: 0.2.0, in daily use on two feeders since November 2026.** Protection against a
+> real jam has not been tested yet; see [Tested](#tested).
 > See [Tested](#tested) before using it.
 
 ## Features
@@ -77,7 +78,7 @@ Install over the network from your own configuration with the remote package:
 
 ```yaml
 packages:
-  petkit_solo: github://Oinq/esphome-petkit-solo/petkit-solo.yaml@v0.1.0
+  petkit_solo: github://Oinq/esphome-petkit-solo/petkit-solo.yaml@v0.2.0
 ```
 
 ## Configuration
@@ -146,6 +147,10 @@ Use at your own risk. See the [licence](LICENSE).
 | Runs on two Solo units (board D4.2): one updated over the air from an older ESPHome, one flashed over UART from the stock firmware (ESP32-D0WD, 8 MB flash) | ✅ |
 | Wi-Fi onboarding, Home Assistant adoption, feed now and scheduled meals | ✅ |
 | Feed stopped by the rotation sensor; empty hopper reported as `no_food_detected` | ✅ |
+| Feeding with food: ~5.9 s per portion, food detected on every meal | ✅ |
+| Time zone taken from Home Assistant (meals at local time, Europe/Brussels) | ✅ |
+| Optional Bluetooth proxy on both units: meals unaffected (same 11.7 s for 2 portions with and without), ~110 KB free heap; used by Home Assistant to reach a PETKIT EVERSWEET SOLO 2 fountain | ✅ |
+| Grams per portion | pending |
 | Motor protection in a real jam (per-pulse timeout) | pending |
 
 ## Credits

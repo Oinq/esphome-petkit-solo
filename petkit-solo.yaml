@@ -27,7 +27,7 @@ esphome:
   comment: PETKIT Fresh Element Solo (local ESPHome firmware)
   project:
     name: oinq.petkit-solo
-    version: 0.1.0
+    version: 0.2.0
   on_boot:
     - priority: 800
       then:
